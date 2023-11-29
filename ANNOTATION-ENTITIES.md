@@ -85,3 +85,6 @@ Usuario usuario = usuarioDao.findByEmail("exemplo@dominio.com");
 ```
 
 Neste exemplo, o Spring Data JPA automaticamente traduzirá o método `findByEmail` para uma consulta JPQL como "SELECT u FROM Usuario u WHERE u.email = :email", onde `:email` será substituído pelo valor passado como argumento para o método. Isso proporciona uma maneira fácil e rápida de realizar consultas simples sem a necessidade de escrever consultas JPQL manualmente.
+
+# Autor
+## Feito por: `Daniel Penelva de Andrade`
