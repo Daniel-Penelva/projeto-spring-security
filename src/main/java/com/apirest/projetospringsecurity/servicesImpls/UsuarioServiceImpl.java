@@ -35,13 +35,14 @@ public class UsuarioServiceImpl implements UsuarioService {
 
                 if (Objects.isNull(user)) {
                     usuarioDao.save(getUserFromMap(requestMap));
+                    System.out.println("TESTE - VERIFICAR USUÁRIO CADASTRADO");
                     return FaturaUtil.getResponseEntity("Usuário cadastrado com Sucesso!", HttpStatus.CREATED);
 
                 } else {
                     return FaturaUtil.getResponseEntity("O usuário com esse email já existe", HttpStatus.BAD_REQUEST);
                 }
             } else {
-                FaturaUtil.getResponseEntity(FaturaConstant.INVALID_DATA, HttpStatus.BAD_REQUEST);
+                return FaturaUtil.getResponseEntity(FaturaConstant.INVALID_DATA, HttpStatus.BAD_REQUEST);
             }
         } catch (Exception exception) {
             exception.printStackTrace();
@@ -52,11 +53,11 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     // Valida se o mapa de solicitação contém as chaves necessárias.
     private boolean validateSignUpMap(Map<String, String> requestMap) {
-        if (requestMap.containsKey("nome") && requestMap.containsKey("telefone")
-                && requestMap.containsKey("email") && requestMap.containsKey("password")) {
-
+        if(requestMap.containsKey("nome") && requestMap.containsKey("telefone")
+                && requestMap.containsKey("email") && requestMap.containsKey("password")){
             return true;
         }
+
         return false;
     }
 
