@@ -599,5 +599,251 @@ Principais pontos desse script:
 
 Em resumo, este filtro é responsável por validar tokens JWT em solicitações HTTP, garantindo que o usuário seja autenticado corretamente. Ele extrai informações do token para realizar verificações adicionais e configura o contexto de segurança do Spring Security.
 
+
+## Classe `SecurityConfig`
+
+A classe de configuração do Spring Security fornece configurações específicas de segurança para aplicativos web. Essa classe é onde define como as solicitações HTTP devem ser tratadas em termos de autenticação, autorização e outras configurações de segurança. 
+
+```java
+package com.apirest.projetospringsecurity.jwt;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Autowired
+    private CustomerDetailsService CustomerDetailsService;
+
+    @Autowired
+    private JwtFilter jwtFilter;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return NoOpPasswordEncoder.getInstance();
+    }
+
+    @Bean
+    protected SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity.cors().configurationSource(request -> new CorsConfiguration().applyPermitDefaultValues())
+                .and()
+                .csrf().disable()
+                .authorizeHttpRequests()
+                .requestMatchers("/user/login", "/user/signup", "/user/forgotPassword")
+                .permitAll()
+                .anyRequest()
+                .authenticated()
+                .and().exceptionHandling()
+                .and().sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+        httpSecurity.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        return httpSecurity.build();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+            throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
+
+}
+```
+
+Analisando as principais anotações e métodos presentes nesse script:
+
+### 1. **@Configuration:**
+   - Essa anotação indica que a classe é uma classe de configuração do Spring. Ela é usada para definir configurações e beans no contexto do Spring.
+
+### 2. **@EnableWebSecurity:**
+   - Essa anotação habilita a configuração de segurança web do Spring Security. Indica que a classe `SecurityConfig` será usada para configurar as características de segurança da aplicação.
+
+### 3. **@Autowired CustomerDetailsService:**
+   - Injeta a instância de `CustomerDetailsService`. Essa classe implementa a interface `UserDetailsService` do Spring Security e é usada para carregar informações do usuário durante o processo de autenticação.
+
+### 4. **@Autowired JwtFilter:**
+   - Injeta a instância de `JwtFilter`, que é uma classe personalizada para processar tokens JWT (JSON Web Token) durante o processo de autenticação.
+
+### 5. **@Bean passwordEncoder():**
+   - Cria um bean para o `PasswordEncoder`. No entanto, o `NoOpPasswordEncoder.getInstance()` está sendo utilizado. Isso significa que não há codificação de senha (é uma implementação sem codificação), vale ressaltar que é uma prática não recomendada para ambientes de produção.
+
+### 6. **@Bean securityFilterChain(HttpSecurity httpSecurity):**
+   - Este método configura a cadeia de filtros de segurança.
+   - Configura a política CORS permitindo todas as origens.
+   - Desabilita a proteção CSRF.
+   - Define regras de autorização para permitir que algumas solicitações específicas sejam acessadas sem autenticação (`permitAll()`), enquanto todas as outras exigem autenticação.
+   - Configura o manuseio de exceções.
+   - Define a política de gerenciamento de sessão como `STATELESS`, indicando que a aplicação não deve criar ou utilizar sessões, o que é típico em autenticação baseada em token.
+   - Adiciona o `JwtFilter` antes do `UsernamePasswordAuthenticationFilter` na cadeia de filtros.
+
+Analisar o método `securityFilterChain` linha por linha:
+
+```java
+@Bean
+protected SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+    httpSecurity.cors().configurationSource(request -> new CorsConfiguration().applyPermitDefaultValues())
+            .and()
+            .csrf().disable()
+            .authorizeHttpRequests()
+            .requestMatchers("/user/login", "/user/signup", "/user/forgotPassword")
+            .permitAll()
+            .anyRequest()
+            .authenticated()
+            .and().exceptionHandling()
+            .and().sessionManagement()
+            .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+    httpSecurity.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+    return httpSecurity.build();
+}
+```
+
+   1. **@Bean:**
+      - Esta anotação indica que este método é um bean gerenciado pelo contêiner Spring.
+
+   2. **SecurityFilterChain:**
+      - Este método retorna uma instância de `SecurityFilterChain`, que é uma cadeia de filtros de segurança utilizada pelo Spring Security para proteger a aplicação.
+
+   3. **securityFilterChain(HttpSecurity httpSecurity):**
+      - Este método recebe uma instância de `HttpSecurity` como parâmetro, que é configurada dentro do método para definir as políticas de segurança.
+
+   4. **httpSecurity.cors().configurationSource(...):**
+      - Configura a política CORS (Cross-Origin Resource Sharing) para permitir requisições de qualquer origem (`applyPermitDefaultValues()`).
+   
+   5. **.and():**
+      - Indica que a configuração CORS foi concluída e a próxima configuração será sobre CSRF.
+
+   6. **httpSecurity.csrf().disable():**
+      - Desabilita a proteção CSRF. Isso é comum em aplicações que utilizam autenticação baseada em token.
+
+   7. **.authorizeHttpRequests():**
+      - Inicia a configuração das regras de autorização.
+
+   8. **.requestMatchers("/user/login", "/user/signup", "/user/forgotPassword").permitAll():**
+      - Define que as URLs `/user/login`, `/user/signup` e `/user/forgotPassword` são permitidas para todos (`permitAll()`). Ou seja, não requerem autenticação.
+
+   9. **.anyRequest().authenticated():**
+      - Indica que qualquer outra requisição (que não foi especificada acima) requer autenticação. Ou seja, o acesso às demais URLs exigirá que o usuário esteja autenticado.
+
+   10. **.and().exceptionHandling():**
+      - Adiciona configurações relacionadas ao tratamento de exceções.
+
+   11. **.and().sessionManagement():**
+      - Adiciona configurações relacionadas ao gerenciamento de sessão.
+
+   12. **.sessionCreationPolicy(SessionCreationPolicy.STATELESS):**
+      - Define que a política de criação de sessão é `STATELESS`, o que significa que a aplicação não deve criar ou utilizar sessões. Isso é comum em autenticação baseada em token.
+
+   13. **httpSecurity.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class):**
+      - Adiciona o filtro `jwtFilter` antes do filtro padrão `UsernamePasswordAuthenticationFilter`. O filtro `jwtFilter` é responsável por processar tokens JWT durante o processo de autenticação.
+
+   14. **return httpSecurity.build():**
+      - Conclui a configuração e retorna a instância de `SecurityFilterChain` configurada.
+
+Em resumo, este método configura as políticas de segurança da aplicação utilizando o Spring Security. Desabilita o CSRF, configura as regras de autorização para URLs específicas, exige autenticação para outras URLs, e define a política de criação de sessão como `STATELESS`. Além disso, adiciona um filtro personalizado (`jwtFilter`) antes do filtro padrão de autenticação por nome de usuário e senha.
+
+
+### 7. **@Bean authenticationManager(AuthenticationConfiguration authenticationConfiguration):**
+   - Cria um bean para o `AuthenticationManager`. Esse bean é necessário para a configuração do `JwtFilter` e é utilizado para autenticar solicitações de autenticação.
+
+Em resumo, essa classe `SecurityConfig` configura a segurança da aplicação utilizando Spring Security. Ela desabilita a proteção CSRF, configura regras de autorização, define políticas de sessão, e adiciona um filtro personalizado (`JwtFilter`) para processar tokens JWT durante a autenticação. No entanto, é importante mencionar que o uso de `NoOpPasswordEncoder.getInstance()` para `PasswordEncoder` não é seguro para ambientes de produção, utilizarei apenas para estudos. Recomenda-se o uso de métodos de codificação seguros, como BCryptPasswordEncoder.
+
+## Bom Saber:
+
+### CSRF (Cross-Site Request Forgery)
+
+CSRF (Cross-Site Request Forgery), em português conhecido como "falsificação de solicitação entre sites", é uma vulnerabilidade de segurança que ocorre quando um atacante realiza uma ação indesejada em nome de um usuário autenticado sem o conhecimento ou consentimento desse usuário. Essa vulnerabilidade explora a confiança que um site tem no navegador do usuário.
+
+No contexto do Spring Security, o CSRF (Cross-Site Request Forgery) é uma vulnerabilidade de segurança que pode afetar a aplicação. O Spring Security oferece mecanismos integrados para ajudar a prevenir ataques CSRF, e uma dessas medidas é o uso de tokens CSRF.
+
+Quando utiliza o Spring Security para proteger sua aplicação web, ele inclui automaticamente medidas de proteção contra CSRF. 
+
+Alguns pontos-chave sobre como o Spring Security aborda o CSRF:
+
+1. **Token CSRF:**
+   - O Spring Security usa um token CSRF (também conhecido como token anti-CSRF) como uma medida preventiva padrão. Esse token é incluído automaticamente em formulários web gerados pelo Spring Security.
+
+2. **`csrf()` no `HttpSecurity`:**
+   - Ao configurar o `HttpSecurity` no arquivo de configuração do Spring Security (normalmente, uma classe que estende `WebSecurityConfigurerAdapter`), você geralmente encontra uma chamada ao método `csrf()`.
+
+     ```java
+     @Override
+     protected void configure(HttpSecurity http) throws Exception {
+         http
+             // Outras configurações
+             .csrf().disable(); // ou .csrf().csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+     }
+     ```
+
+   - O método `csrf()` sem argumentos habilita a proteção CSRF por padrão, enquanto `csrf().disable()` desabilita essa proteção. A escolha entre habilitar ou desabilitar o CSRF depende dos requisitos específicos da sua aplicação.
+
+3. **`csrfTokenRepository`:**
+   - Se você optar por habilitar a proteção CSRF, é possível configurar um repositório de token CSRF personalizado. O método `csrfTokenRepository` permite que forneça um repositório específico, como o `CookieCsrfTokenRepository`.
+
+     ```java
+     @Override
+     protected void configure(HttpSecurity http) throws Exception {
+         http
+             // Outras configurações
+             .csrf().csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
+     }
+     ```
+
+   - O `CookieCsrfTokenRepository` armazena o token CSRF em um cookie e o valida na submissão de formulários.
+
+4. **Proteção por Padrão em Formulários:**
+   - Ao usar tags de formulário geradas pelo Spring Security, os tokens CSRF são automaticamente incluídos. Por exemplo, ao usar a tag `<form:form>` em uma página JSP ou Thymeleaf, o token CSRF é incluído automaticamente.
+
+5. **SameSite Cookies:**
+   - O Spring Security também respeita as configurações SameSite dos cookies. Isso ajuda a prevenir ataques CSRF, pois limita a transmissão de cookies em solicitações de terceiros.
+
+Ao utilizar o Spring Security, é importante entender como a proteção CSRF é configurada na sua aplicação para garantir que a aplicação esteja segura contra ataques CSRF. Se necessário, você pode ajustar as configurações para atender aos requisitos específicos do seu aplicativo.
+
+### CORS (Cross-Origin Resource Sharing)
+
+CORS, que significa Cross-Origin Resource Sharing (Compartilhamento de Recursos entre Origens), é um mecanismo que permite que recursos da web em uma página sejam solicitados a partir de outro domínio além do domínio do próprio recurso que originou a solicitação. Em outras palavras, o CORS é uma política de segurança implementada pelos navegadores da web para controlar como os recursos da web em uma página podem ser solicitados a partir de outro domínio.
+
+A política de mesma origem (Same-Origin Policy) é uma regra de segurança que restringe como os documentos ou scripts de uma origem (domínio, protocolo e porta) podem interagir com recursos de outra origem. O CORS foi introduzido para flexibilizar essa política e permitir comunicação entre diferentes origens de forma segura.
+
+Principais pontos sobre o CORS:
+
+1. **Origens Diferentes:**
+   - Quando uma solicitação é feita a partir de uma página web para um domínio diferente daquele que forneceu a página original, a política de mesma origem normalmente impede a solicitação de ser concluída.
+
+2. **Headers CORS:**
+   - O CORS é implementado através do uso de cabeçalhos HTTP especiais, que são adicionados tanto à solicitação quanto à resposta. Alguns dos cabeçalhos CORS importantes incluem:
+     - `Origin`: Indica a origem da solicitação.
+     - `Access-Control-Allow-Origin`: Indica quais origens estão autorizadas a acessar os recursos.
+     - `Access-Control-Allow-Methods`: Indica os métodos HTTP permitidos em uma solicitação.
+     - `Access-Control-Allow-Headers`: Indica quais cabeçalhos HTTP são permitidos em uma solicitação.
+     - `Access-Control-Allow-Credentials`: Indica se as credenciais (como cookies) podem ser incluídas na solicitação.
+
+3. **Solicitações Simples e Não Simples:**
+   - Solicitações simples (simple requests) e não simples (not-so-simple requests) são tratadas de maneira diferente no CORS. Solicitações simples podem ser feitas diretamente pelo navegador, enquanto solicitações não simples requerem pré-voo (pre-flight) para determinar se a solicitação pode ser aceita.
+
+4. **Pré-Voo (Pre-flight):**
+   - Antes de uma solicitação não simples ser enviada, o navegador envia uma solicitação de "pré-voo" (OPTIONS) para o servidor para determinar se a solicitação real pode ser feita. Isso ajuda a evitar solicitações não autorizadas.
+
+5. **Credenciais:**
+   - O CORS suporta o uso de credenciais, como cookies, em solicitações entre origens. No entanto, isso requer configuração adequada no servidor, incluindo o uso do cabeçalho `Access-Control-Allow-Credentials`.
+
+6. **Configuração no Servidor:**
+   - O servidor precisa ser configurado corretamente para lidar com solicitações CORS. Isso geralmente envolve configurar o servidor para incluir os cabeçalhos CORS apropriados nas respostas.
+
+O CORS é uma parte fundamental da arquitetura da web moderna, permitindo que páginas da web acessem recursos de diferentes origens de maneira segura. Ao implementar CORS corretamente, os desenvolvedores podem criar aplicativos web mais flexíveis e interativos.
+
 # Autor
 ## Feito por: `Daniel Penelva de Andrade`
