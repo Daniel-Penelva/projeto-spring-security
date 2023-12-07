@@ -32,5 +32,20 @@ public class UsuarioController {
         }
         return FaturaUtil.getResponseEntity(FaturaConstant.SOMENTHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    // localhost:8081/api/usuarios/login
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody(required = true) Map<String, String> requestMap){
+
+        try {
+            return usuarioService.login(requestMap);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return FaturaUtil.getResponseEntity(FaturaConstant.SOMENTHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    /*OBS. Ao testar o método 'login()' no postman vai gerar um token, no caso copia o token gerado, acesse  o site 'https://jwt.io/' e cole 
+    esse token no campo "Encoded" para gerar o playoad. */ 
     
 }
